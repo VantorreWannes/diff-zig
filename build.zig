@@ -42,6 +42,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    const cos_lcs_pkg = b.dependency("cos_lcs_zig", .{ .target = target, .optimize = optimize });
+    const cos_lcs_mod = cos_lcs_pkg.module("cos_lcs_zig");
+
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
     // to the module defined above, it's sometimes preferable to split business
@@ -80,6 +83,7 @@ pub fn build(b: *std.Build) void {
                 // can be extremely useful in case of collisions (which can happen
                 // importing modules from different packages).
                 .{ .name = "deltas", .module = mod },
+                .{ .name = "cos_lcs", .module = cos_lcs_mod },
             },
         }),
     });
