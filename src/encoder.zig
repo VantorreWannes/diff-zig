@@ -10,7 +10,7 @@ pub const CopyDetails = struct {
     len: usize,
 };
 
-pub const Delta = union(enum) {
+pub const Diff = union(enum) {
     copy: CopyDetails,
     insert: []const u8,
 };
@@ -32,7 +32,7 @@ pub fn init(source: []const u8, target: []const u8) DiffEncoder {
     };
 }
 
-pub fn next(self: *DiffEncoder) ?Delta {
+pub fn next(self: *DiffEncoder) ?Diff {
     if (self.target_index >= self.target.len) {
         return null;
     }
@@ -42,14 +42,14 @@ pub fn next(self: *DiffEncoder) ?Delta {
     if (current_pair == null) {
         const insert_slice = self.target[self.target_index..];
         self.target_index = self.target.len;
-        return Delta{ .insert = insert_slice };
+        return Diff{ .insert = insert_slice };
     }
     const pair = current_pair.?;
 
     if (self.target_index < pair.target_index) {
         const insert_slice = self.target[self.target_index..pair.target_index];
         self.target_index = pair.target_index;
-        return Delta{ .insert = insert_slice };
+        return Diff{ .insert = insert_slice };
     }
 
     const start_source_index = pair.source_index;
@@ -76,7 +76,7 @@ pub fn next(self: *DiffEncoder) ?Delta {
 
     self.target_index += len;
 
-    return Delta{ .copy = copy_details };
+    return Diff{ .copy = copy_details };
 }
 
 test "empty source and target" {
@@ -91,74 +91,74 @@ test "empty target" {
 
 test "empty source" {
     var encoder = DiffEncoder.init("", "abc");
-    const delta = encoder.next().?;
-    try testing.expect(std.mem.eql(u8, "abc", delta.insert));
+    const diff = encoder.next().?;
+    try testing.expect(std.mem.eql(u8, "abc", diff.insert));
 
     try testing.expectEqual(null, encoder.next());
 }
 
 test "identical source and target" {
     var encoder = DiffEncoder.init("abc", "abc");
-    const delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 0), delta.copy.start);
-    try testing.expectEqual(@as(usize, 3), delta.copy.len);
+    const diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 0), diff.copy.start);
+    try testing.expectEqual(@as(usize, 3), diff.copy.len);
 
     try testing.expectEqual(null, encoder.next());
 }
 
 test "leading insert" {
     var encoder = DiffEncoder.init("bc", "abc");
-    var delta = encoder.next().?;
-    try testing.expect(std.mem.eql(u8, "a", delta.insert));
+    var diff = encoder.next().?;
+    try testing.expect(std.mem.eql(u8, "a", diff.insert));
 
-    delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 0), delta.copy.start);
-    try testing.expectEqual(@as(usize, 2), delta.copy.len);
+    diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 0), diff.copy.start);
+    try testing.expectEqual(@as(usize, 2), diff.copy.len);
 
     try testing.expectEqual(null, encoder.next());
 }
 
 test "trailing insert" {
     var encoder = DiffEncoder.init("ab", "abc");
-    var delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 0), delta.copy.start);
-    try testing.expectEqual(@as(usize, 2), delta.copy.len);
+    var diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 0), diff.copy.start);
+    try testing.expectEqual(@as(usize, 2), diff.copy.len);
 
-    delta = encoder.next().?;
-    try testing.expect(std.mem.eql(u8, "c", delta.insert));
+    diff = encoder.next().?;
+    try testing.expect(std.mem.eql(u8, "c", diff.insert));
 
     try testing.expectEqual(null, encoder.next());
 }
 
 test "middle insert" {
     var encoder = DiffEncoder.init("ac", "abc");
-    var delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 0), delta.copy.start);
-    try testing.expectEqual(@as(usize, 1), delta.copy.len);
+    var diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 0), diff.copy.start);
+    try testing.expectEqual(@as(usize, 1), diff.copy.len);
 
-    delta = encoder.next().?;
-    try testing.expect(std.mem.eql(u8, "b", delta.insert));
+    diff = encoder.next().?;
+    try testing.expect(std.mem.eql(u8, "b", diff.insert));
 
-    delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 1), delta.copy.start);
-    try testing.expectEqual(@as(usize, 1), delta.copy.len);
+    diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 1), diff.copy.start);
+    try testing.expectEqual(@as(usize, 1), diff.copy.len);
 
     try testing.expectEqual(null, encoder.next());
 }
 
 test "simple deletion (source has extra chars)" {
     var encoder = DiffEncoder.init("axbyc", "abc");
-    var delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 0), delta.copy.start);
-    try testing.expectEqual(@as(usize, 1), delta.copy.len);
+    var diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 0), diff.copy.start);
+    try testing.expectEqual(@as(usize, 1), diff.copy.len);
 
-    delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 2), delta.copy.start);
-    try testing.expectEqual(@as(usize, 1), delta.copy.len);
+    diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 2), diff.copy.start);
+    try testing.expectEqual(@as(usize, 1), diff.copy.len);
 
-    delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 4), delta.copy.start);
-    try testing.expectEqual(@as(usize, 1), delta.copy.len);
+    diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 4), diff.copy.start);
+    try testing.expectEqual(@as(usize, 1), diff.copy.len);
 
     try testing.expectEqual(null, encoder.next());
 }
@@ -169,19 +169,19 @@ test "complex case with mixed operations" {
 
     var encoder = DiffEncoder.init(source, target);
 
-    var delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 0), delta.copy.start);
-    try testing.expectEqual(@as(usize, 5), delta.copy.len);
+    var diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 0), diff.copy.start);
+    try testing.expectEqual(@as(usize, 5), diff.copy.len);
 
-    delta = encoder.next().?;
-    try testing.expectEqualSlices(u8, "wa", delta.insert);
+    diff = encoder.next().?;
+    try testing.expectEqualSlices(u8, "wa", diff.insert);
 
-    delta = encoder.next().?;
-    try testing.expectEqual(@as(usize, 6), delta.copy.start);
-    try testing.expectEqual(@as(usize, 8), delta.copy.len);
+    diff = encoder.next().?;
+    try testing.expectEqual(@as(usize, 6), diff.copy.start);
+    try testing.expectEqual(@as(usize, 8), diff.copy.len);
 
-    delta = encoder.next().?;
-    try testing.expect(std.mem.eql(u8, "!", delta.insert));
+    diff = encoder.next().?;
+    try testing.expect(std.mem.eql(u8, "!", diff.insert));
 
     try testing.expectEqual(null, encoder.next());
 }
