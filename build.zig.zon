@@ -62,8 +62,8 @@
         //    .lazy = false,
         //},
         .cos_lcs_zig = .{
-            .url = "git+https://github.com/VantorreWannes/cos_lcs-zig.git#f55a371c86761722e4f223d55458c66208cc459f",
-            .hash = "cos_lcs_zig-0.0.0-HFG3Ct5NAACaVEmw3VSSDtk3ctAnGgagQlsllOtgiphq",
+            .url = "git+https://github.com/VantorreWannes/cos_lcs-zig.git#ed6eca2bf2ca0bd524342900eb392ae4684a911a",
+            .hash = "cos_lcs_zig-0.0.0-HFG3CjNLAACJbUzhhO2dcEKUCaycR4tk5or2pBdM_-y4",
         },
     },
     // Specifies the set of files and directories that are included in this package.
